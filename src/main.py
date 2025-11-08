@@ -15,7 +15,8 @@ from .automation import (
     wait_before_next_iteration,
 )
 from .icon_detector import IconDetector, capture_icon_template
-from .utils import ensure_directory, get_desktop_path, handle_existing_file
+from .utils import annotate_screenshot, capture_screenshot, ensure_directory, get_desktop_path, handle_existing_file
+import cv2
 
 # Configure logging
 logging.basicConfig(
@@ -123,17 +124,31 @@ def main():
         try:
             # 6a. Capture fresh desktop screenshot
             logger.info("Capturing desktop screenshot...")
-            from .utils import capture_screenshot
             screenshot = capture_screenshot()
-            
+
             # 6b. Detect Notepad icon position (with retry logic)
             logger.info("Detecting Notepad icon...")
             x, y, confidence = detector.detect_with_retry(max_retries=3, retry_delay=1.0)
-            
+
             if not detector.validate_icon_detection(x, y, confidence):
                 logger.error(f"Failed to detect icon for post {post['id']}")
                 failed_saves += 1
                 continue
+
+            # 6b2. Save annotated screenshot showing detected icon
+            logger.info("Saving annotated screenshot...")
+            annotated = annotate_screenshot(
+                screenshot,
+                x, y,
+                width=60,
+                height=60,
+                label="Notepad Icon",
+                confidence=confidence
+            )
+            screenshot_filename = f"detection_post_{post['id']}.png"
+            screenshot_path = output_dir / screenshot_filename
+            cv2.imwrite(str(screenshot_path), annotated)
+            logger.info(f"Annotated screenshot saved: {screenshot_path}")
             
             # 6c. Launch Notepad
             logger.info(f"Launching Notepad from icon at ({x}, {y})...")
@@ -206,7 +221,9 @@ def main():
     if successful_saves > 0:
         print(f"\n✓ Successfully saved {successful_saves} post(s) to:")
         print(f"  {output_dir}")
-    
+        print(f"\n✓ Annotated detection screenshots saved for each post:")
+        print(f"  Files named: detection_post_*.png")
+
     if failed_saves > 0:
         print(f"\n⚠ {failed_saves} post(s) failed to save. Check the log for details.")
 
