@@ -244,15 +244,30 @@ class IconDetector:
                 logger.info("Install Tesseract from: https://github.com/UB-Mannheim/tesseract/wiki")
                 return None, None, 0.0
             
+            # Preprocess image to improve OCR accuracy
+            # Convert to grayscale
+            gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
+
+            # Apply bilateral filter to reduce noise while preserving edges
+            denoised = cv2.bilateralFilter(gray, 9, 75, 75)
+
+            # Increase contrast using CLAHE (Contrast Limited Adaptive Histogram Equalization)
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            contrast_enhanced = clahe.apply(denoised)
+
+            # Apply binary thresholding to make text stand out
+            # Use Otsu's method for automatic threshold determination
+            _, binary = cv2.threshold(contrast_enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
             # Convert to PIL Image for pytesseract
-            screenshot_rgb = cv2.cvtColor(screenshot, cv2.COLOR_BGR2RGB)
-            pil_image = Image.fromarray(screenshot_rgb)
-            
+            pil_image = Image.fromarray(binary)
+
             # Use OCR to find text with detailed data including bounding boxes
+            # PSM 6: Assume a single uniform block of text
             ocr_data = pytesseract.image_to_data(
                 pil_image,
                 output_type=pytesseract.Output.DICT,
-                config='--psm 6'  # Assume uniform block of text (better for desktop icons)
+                config='--psm 6'  # Uniform block of text (works well for desktop icons)
             )
 
             # Debug: log all detected text
