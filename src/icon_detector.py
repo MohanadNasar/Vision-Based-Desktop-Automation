@@ -22,7 +22,7 @@ ICON_TEMPLATE_PATH = Path(__file__).parent.parent / "assets" / "notepad_icon.png
 
 
 class IconDetector:
-    """Detects desktop icons using template matching with OCR fallback."""
+    """Detects desktop icons using template matching as primary method with OCR fallback."""
     
     def __init__(
         self,
@@ -65,11 +65,12 @@ class IconDetector:
         use_ocr_fallback: bool = True
     ) -> Tuple[Optional[int], Optional[int], float]:
         """
-        Detect icon position on desktop using template matching.
+        Detect icon position on desktop using template matching as primary method.
+        Falls back to OCR if no template exists or template matching fails.
         
         Args:
             screenshot: Optional screenshot image. If None, captures a new one.
-            use_ocr_fallback: Whether to use OCR if template matching fails
+            use_ocr_fallback: Whether to use OCR if template matching fails or no template exists
             
         Returns:
             Tuple of (x, y, confidence) where x,y are center coordinates.
@@ -78,25 +79,39 @@ class IconDetector:
         if screenshot is None:
             screenshot = capture_screenshot()
         
-        if self.template_gray is None:
-            logger.error("Template not loaded. Cannot perform detection.")
-            if use_ocr_fallback:
-                return self._detect_with_ocr(screenshot)
-            return None, None, 0.0
+        confidence = 0.0
         
-        # Try template matching first
-        x, y, confidence = self._detect_with_template_matching(screenshot)
+        # Try template matching first (primary method) if template exists
+        if self.template_gray is not None:
+            logger.info("Attempting template matching detection...")
+            x, y, confidence = self._detect_with_template_matching(screenshot)
+            
+            if confidence >= self.confidence_threshold:
+                logger.info(f"Icon detected via template matching at ({x}, {y}) with confidence {confidence:.2f}")
+                return x, y, confidence
+            else:
+                logger.warning(f"Template matching failed. Confidence: {confidence:.2f} < threshold: {self.confidence_threshold}")
+        else:
+            logger.info("No template found in assets. Skipping template matching.")
+            x, y = None, None
         
-        if confidence >= self.confidence_threshold:
-            logger.info(f"Icon detected at ({x}, {y}) with confidence {confidence:.2f}")
-            return x, y, confidence
-        
-        # Fallback to OCR if template matching failed
+        # Fallback to OCR if template matching failed or no template exists
         if use_ocr_fallback:
-            logger.info("Template matching failed, trying OCR fallback...")
-            return self._detect_with_ocr(screenshot)
+            if self.template_gray is None:
+                logger.info("Falling back to OCR detection (no template available)...")
+            else:
+                logger.info("Falling back to OCR detection (template matching failed)...")
+            
+            x, y, confidence = self._detect_with_ocr(screenshot)
+            
+            if x is not None and y is not None:
+                logger.info(f"Icon detected via OCR at ({x}, {y}) with confidence {confidence:.2f}")
+                return x, y, confidence
+            else:
+                logger.warning("OCR detection also failed.")
+        else:
+            logger.warning("OCR fallback is disabled. Detection failed.")
         
-        logger.warning(f"Detection failed. Confidence: {confidence:.2f} < threshold: {self.confidence_threshold}")
         return None, None, confidence
     
     def _detect_with_template_matching(
@@ -158,67 +173,139 @@ class IconDetector:
         
         return None, None, best_confidence
     
+    def _calculate_similarity_to_notepad(self, text: str) -> float:
+        """
+        Calculate similarity score between text and "Notepad".
+        Higher score means closer match to "Notepad".
+        
+        Args:
+            text: Text to compare
+            
+        Returns:
+            Similarity score between 0.0 and 1.0
+        """
+        text_lower = text.strip().lower()
+        target = "notepad"
+        
+        # Exact match (case-insensitive)
+        if text_lower == target:
+            return 1.0
+        
+        # Check if text starts with "notepad" (e.g., "notepad++", "notepad_icon")
+        if text_lower.startswith(target):
+            # Calculate similarity based on how much of the text is "notepad"
+            # Pure "notepad" gets full score, longer text gets lower score
+            notepad_ratio = len(target) / len(text_lower)
+            # Score: 0.8 base + up to 0.2 bonus for shorter text (closer to pure "notepad")
+            return min(0.8 + (0.2 * notepad_ratio), 1.0)
+        
+        # Check if text contains "notepad" as a word (not just substring)
+        if target in text_lower:
+            # Find the position and check if it's a word boundary
+            idx = text_lower.find(target)
+            # Check if it's at the start or has word boundary before it
+            is_word_start = (idx == 0 or not text_lower[idx - 1].isalnum())
+            # Check if it's at the end or has word boundary after it
+            is_word_end = (idx + len(target) >= len(text_lower) or 
+                          not text_lower[idx + len(target)].isalnum())
+            
+            if is_word_start and is_word_end:
+                # "notepad" appears as a complete word
+                notepad_ratio = len(target) / len(text_lower)
+                return 0.6 + (0.2 * notepad_ratio)
+            else:
+                # "notepad" is part of another word
+                notepad_ratio = len(target) / len(text_lower)
+                return 0.4 + (0.2 * notepad_ratio)
+        
+        # No match
+        return 0.0
+    
     def _detect_with_ocr(
         self,
         screenshot: np.ndarray
     ) -> Tuple[Optional[int], Optional[int], float]:
         """
-        Detect icon using OCR to find "Notepad" text label.
+        Detect icon using OCR to find "Notepad" text label (primary detection method).
+        Selects the closest match to "Notepad" if multiple matches exist.
         
         Args:
             screenshot: Screenshot image in BGR format
             
         Returns:
-            Tuple of (x, y, confidence). Confidence is lower for OCR method.
+            Tuple of (x, y, confidence). Returns (None, None, 0.0) if detection fails.
         """
         try:
             # Check if Tesseract is available
             try:
                 pytesseract.get_tesseract_version()
             except Exception:
-                logger.warning("Tesseract OCR not found. OCR fallback unavailable.")
+                logger.error("Tesseract OCR not found. OCR is required for detection.")
                 logger.info("Install Tesseract from: https://github.com/UB-Mannheim/tesseract/wiki")
                 return None, None, 0.0
+            
             # Convert to PIL Image for pytesseract
             screenshot_rgb = cv2.cvtColor(screenshot, cv2.COLOR_BGR2RGB)
             pil_image = Image.fromarray(screenshot_rgb)
             
-            # Use OCR to find text
-            # Get detailed data including bounding boxes
-            ocr_data = pytesseract.image_to_data(pil_image, output_type=pytesseract.Output.DICT)
+            # Use OCR to find text with detailed data including bounding boxes
+            ocr_data = pytesseract.image_to_data(
+                pil_image, 
+                output_type=pytesseract.Output.DICT,
+                config='--psm 6'  # Assume uniform block of text (better for desktop icons)
+            )
             
-            # Search for "Notepad" text
-            text_found = False
-            x_coords = []
-            y_coords = []
+            # Find all text containing "notepad" and score them
+            candidates = []
             
             for i, text in enumerate(ocr_data.get('text', [])):
-                if 'notepad' in text.lower():
-                    text_found = True
+                text_clean = text.strip()
+                if not text_clean:
+                    continue
+                
+                # Calculate similarity to "Notepad"
+                similarity = self._calculate_similarity_to_notepad(text_clean)
+                
+                if similarity > 0.0:  # Found a match
                     x = ocr_data['left'][i]
                     y = ocr_data['top'][i]
                     w = ocr_data['width'][i]
                     h = ocr_data['height'][i]
+                    ocr_conf = ocr_data.get('conf', [0])[i] if 'conf' in ocr_data else 0
                     
                     # Icon is typically above the text label
-                    # Estimate icon position (text is usually below icon)
-                    icon_x = x + w // 2
-                    icon_y = y - 30  # Approximate icon position above text
+                    icon_x = x + w // 2  # Center horizontally with text
+                    icon_height_estimate = max(h * 1.5, 40)  # At least 40 pixels or 1.5x text height
+                    icon_y = int(y - icon_height_estimate / 2)  # Center of icon above text
                     
-                    x_coords.append(icon_x)
-                    y_coords.append(icon_y)
+                    # Combined score: similarity to "Notepad" weighted with OCR confidence
+                    combined_score = (similarity * 0.7) + ((ocr_conf / 100.0) * 0.3)
+                    
+                    candidates.append({
+                        'text': text_clean,
+                        'x': icon_x,
+                        'y': icon_y,
+                        'similarity': similarity,
+                        'ocr_conf': ocr_conf,
+                        'combined_score': combined_score
+                    })
+                    
+                    logger.debug(f"Found candidate '{text_clean}' at ({x}, {y}) - similarity: {similarity:.2f}, OCR conf: {ocr_conf:.1f}%")
             
-            if text_found and x_coords:
-                # Use the first match (or could average multiple matches)
-                avg_x = int(sum(x_coords) / len(x_coords))
-                avg_y = int(sum(y_coords) / len(y_coords))
-                
-                # OCR confidence is lower, so we return a moderate value
-                logger.info(f"Icon detected via OCR at ({avg_x}, {avg_y})")
-                return avg_x, avg_y, 0.6
+            if not candidates:
+                logger.warning("OCR did not find any text containing 'Notepad' on desktop")
+                return None, None, 0.0
             
-            logger.warning("OCR did not find 'Notepad' text on desktop")
-            return None, None, 0.0
+            # Select the candidate with the highest combined score (closest to "Notepad")
+            best_match = max(candidates, key=lambda c: c['combined_score'])
+            
+            logger.info(f"Best match: '{best_match['text']}' at ({best_match['x']}, {best_match['y']}) "
+                       f"- similarity: {best_match['similarity']:.2f}, OCR conf: {best_match['ocr_conf']:.1f}%")
+            
+            # Normalize confidence (use combined score, capped at 0.9 for OCR)
+            normalized_conf = min(best_match['combined_score'], 0.9)
+            
+            return best_match['x'], best_match['y'], normalized_conf
             
         except Exception as e:
             logger.error(f"OCR detection failed: {e}")
