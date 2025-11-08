@@ -203,29 +203,30 @@ def save_file(filename: str, directory: str) -> bool:
 def close_notepad() -> None:
     """
     Close Notepad window using Alt+F4.
-    Ensures Notepad is active before closing.
+    Handles potential "Save changes?" dialog by pressing 'n' (Don't Save).
     """
     try:
         logger.info("Closing Notepad")
-        
-        # Ensure Notepad is active before closing
-        activate_notepad()
-        time.sleep(0.3)
-        
-        # Close using Alt+F4
+
+        # Close using Alt+F4 (works even if window is not focused)
         pyautogui.hotkey('alt', 'f4')
-        time.sleep(0.5)
-        
+        time.sleep(0.8)
+
         # Handle potential "Save changes?" dialog if it appears
-        # Since we already saved, we can press 'n' for "Don't Save" or just wait
-        # Most modern Windows will auto-close if file is already saved
-        time.sleep(0.5)
-        
-        # If a dialog appears asking to save, we've already saved, so dismiss it
-        # Press Escape or Enter to dismiss any remaining dialogs
-        pyautogui.press('escape')
+        # Press 'n' for "Don't Save" (since we already saved the file)
+        # This is more reliable than escape
+        pyautogui.press('n')
         time.sleep(0.3)
-        
+
+        # Also try pressing 'tab' then 'enter' to click "Don't Save" button
+        # in case 'n' doesn't work on some systems
+        pyautogui.press('tab')
+        time.sleep(0.2)
+        pyautogui.press('enter')
+        time.sleep(0.3)
+
+        logger.info("Notepad close command sent")
+
     except Exception as e:
         logger.error(f"Error closing Notepad: {e}")
 
@@ -233,25 +234,37 @@ def close_notepad() -> None:
 def ensure_notepad_closed() -> None:
     """
     Ensure Notepad is completely closed, handling any dialogs.
-    Uses multiple attempts to close.
+    Uses multiple attempts to close and handles save dialogs.
     """
     try:
         # Try closing with Alt+F4 multiple times
         for attempt in range(3):
             try:
-                activate_notepad()
-                time.sleep(0.2)
+                # Send Alt+F4 to close any open Notepad window
                 pyautogui.hotkey('alt', 'f4')
                 time.sleep(0.5)
-                # Dismiss any dialogs
+
+                # If a "Save changes?" dialog appears, click "Don't Save"
+                # Try multiple methods to dismiss the dialog
+                pyautogui.press('n')  # Press 'N' for "Don't Save"
+                time.sleep(0.3)
+
+                # Also try Tab+Enter in case 'n' doesn't work
+                pyautogui.press('tab')
+                time.sleep(0.2)
+                pyautogui.press('enter')
+                time.sleep(0.3)
+
+                # Press Escape as fallback
                 pyautogui.press('escape')
                 time.sleep(0.3)
+
             except Exception:
                 pass
-        
+
         time.sleep(0.5)
         logger.debug("Ensured Notepad is closed")
-        
+
     except Exception as e:
         logger.debug(f"Error ensuring Notepad is closed: {e}")
 
