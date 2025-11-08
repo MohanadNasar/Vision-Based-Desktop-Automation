@@ -110,7 +110,13 @@ def main():
     desktop_path = get_desktop_path()
     output_dir = desktop_path / "tjm-project"
     ensure_directory(str(output_dir))
+
+    # Create screenshots subdirectory
+    screenshots_dir = output_dir / "detection_screenshots"
+    ensure_directory(str(screenshots_dir))
+
     logger.info(f"Output directory: {output_dir}")
+    logger.info(f"Screenshots directory: {screenshots_dir}")
     
     # Step 6: Process each post
     successful_saves = 0
@@ -146,7 +152,7 @@ def main():
                 confidence=confidence
             )
             screenshot_filename = f"detection_post_{post['id']}.png"
-            screenshot_path = output_dir / screenshot_filename
+            screenshot_path = screenshots_dir / screenshot_filename
             cv2.imwrite(str(screenshot_path), annotated)
             logger.info(f"Annotated screenshot saved: {screenshot_path}")
             
@@ -221,7 +227,8 @@ def main():
     if successful_saves > 0:
         print(f"\n✓ Successfully saved {successful_saves} post(s) to:")
         print(f"  {output_dir}")
-        print(f"\n✓ Annotated detection screenshots saved for each post:")
+        print(f"\n✓ Annotated detection screenshots saved to:")
+        print(f"  {screenshots_dir}")
         print(f"  Files named: detection_post_*.png")
 
     if failed_saves > 0:
