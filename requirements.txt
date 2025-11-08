@@ -4,4 +4,5 @@ pytesseract>=0.3.10
 pillow>=9.0.0
 requests>=2.25.0
 numpy>=1.19.0
+pygetwindow>=0.0.9
 

@@ -173,18 +173,15 @@ def main():
             
             successful_saves += 1
             logger.info(f"Successfully saved post {post['id']}")
-            
-            # 6f. Close Notepad (ensure it's properly closed)
-            logger.info("Closing Notepad before next iteration...")
+
+            # 6f. Close Notepad
             close_notepad()
-            time.sleep(0.5)
-            ensure_notepad_closed()
-            time.sleep(1.0)  # Give extra time for window to close
-            
+            time.sleep(1.0)  # Wait for window to close
+
             # 6g. Wait before next iteration
             if i < len(valid_posts):
                 logger.info(f"Completed post {i}/{len(valid_posts)}. Preparing for next post...")
-                wait_before_next_iteration(delay=2.0)  # Increased delay for stability
+                wait_before_next_iteration(delay=1.5)
                 
         except KeyboardInterrupt:
             logger.info("\nProcess interrupted by user")
