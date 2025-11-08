@@ -176,49 +176,48 @@ class IconDetector:
     def _calculate_similarity_to_notepad(self, text: str) -> float:
         """
         Calculate similarity score between text and "Notepad".
-        Strongly favors exact "Notepad" matches to avoid detecting "Notepad++".
-
+        Higher score means closer match to "Notepad".
+        
         Args:
             text: Text to compare
-
+            
         Returns:
             Similarity score between 0.0 and 1.0
         """
         text_lower = text.strip().lower()
         target = "notepad"
-
-        # Exact match (case-insensitive) - HIGHEST PRIORITY
+        
+        # Exact match (case-insensitive)
         if text_lower == target:
             return 1.0
-
-        # REJECT anything that starts with "notepad" but has MORE characters
-        # This prevents matching "Notepad++", "Notepad2", etc.
-        if text_lower.startswith(target) and len(text_lower) > len(target):
-            # Check if extra characters are just non-alphanumeric (e.g., "notepad." or "notepad ")
-            extra_chars = text_lower[len(target):]
-            if extra_chars.strip() and any(c.isalnum() for c in extra_chars):
-                # Has alphanumeric characters after "notepad" - likely "Notepad++"
-                # Give it a VERY LOW score to deprioritize it
-                return 0.1
-
-        # Check if text contains "notepad" as a complete word
+        
+        # Check if text starts with "notepad" (e.g., "notepad++", "notepad_icon")
+        if text_lower.startswith(target):
+            # Calculate similarity based on how much of the text is "notepad"
+            # Pure "notepad" gets full score, longer text gets lower score
+            notepad_ratio = len(target) / len(text_lower)
+            # Score: 0.8 base + up to 0.2 bonus for shorter text (closer to pure "notepad")
+            return min(0.8 + (0.2 * notepad_ratio), 1.0)
+        
+        # Check if text contains "notepad" as a word (not just substring)
         if target in text_lower:
             # Find the position and check if it's a word boundary
             idx = text_lower.find(target)
             # Check if it's at the start or has word boundary before it
             is_word_start = (idx == 0 or not text_lower[idx - 1].isalnum())
             # Check if it's at the end or has word boundary after it
-            is_word_end = (idx + len(target) >= len(text_lower) or
+            is_word_end = (idx + len(target) >= len(text_lower) or 
                           not text_lower[idx + len(target)].isalnum())
-
+            
             if is_word_start and is_word_end:
-                # "notepad" appears as a complete word embedded in other text
-                # Give moderate score but not as high as exact match
-                return 0.5
+                # "notepad" appears as a complete word
+                notepad_ratio = len(target) / len(text_lower)
+                return 0.6 + (0.2 * notepad_ratio)
             else:
                 # "notepad" is part of another word
-                return 0.2
-
+                notepad_ratio = len(target) / len(text_lower)
+                return 0.4 + (0.2 * notepad_ratio)
+        
         # No match
         return 0.0
     
