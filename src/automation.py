@@ -70,28 +70,15 @@ def wait_for_window(title: str, timeout: float = WINDOW_WAIT_TIMEOUT) -> bool:
     """
     start_time = time.time()
     
-    # Simple approach: wait a bit for window to appear, then try to interact
+    # Check if window with title exists
     while time.time() - start_time < timeout:
         try:
-            # Try to get active window (if pyautogui supports it)
-            # Otherwise, just wait and assume window opened
-            time.sleep(0.5)
-            
-            # Try to verify window is active by attempting a simple action
-            # If we can type, the window is likely open
-            # For now, we'll use a simpler timeout-based approach
-            if time.time() - start_time >= 1.0:  # Give it at least 1 second
-                logger.info(f"Assuming {title} window opened (timeout-based check)")
+            windows = gw.getWindowsWithTitle(title)
+            if windows:
                 return True
-                
-        except Exception as e:
-            logger.debug(f"Error checking windows: {e}")
-        
-        time.sleep(0.2)
-    
-    # If we have pywinauto available, we could use it for better window detection
-    # For now, we'll use a simpler approach
-    logger.warning(f"Could not verify {title} window opened within {timeout} seconds")
+        except Exception:
+            pass
+        time.sleep(0.3)
     return False
 
 
