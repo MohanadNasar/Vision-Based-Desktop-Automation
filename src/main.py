@@ -77,12 +77,6 @@ def main():
     logger.info("Vision-Based Desktop Automation - Starting")
     logger.info("="*60)
     
-    # Step 1: Check for icon template
-    if not check_icon_template():
-        logger.error("Icon template not available. Exiting.")
-        print("\nError: Icon template is required. Please set it up and try again.")
-        sys.exit(1)
-    
     # Step 2: Initialize detector
     try:
         detector = IconDetector()

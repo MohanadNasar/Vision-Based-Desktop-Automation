@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 DOUBLE_CLICK_DELAY = 0.1
-TYPE_INTERVAL = 0.05
+TYPE_INTERVAL = 0.02
 WINDOW_WAIT_TIMEOUT = 5.0
-ACTION_DELAY = 0.5
+ACTION_DELAY = 0.3
 
 # Disable pyautogui failsafe for automation (use with caution)
 pyautogui.FAILSAFE = True
