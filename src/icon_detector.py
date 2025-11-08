@@ -250,14 +250,21 @@ class IconDetector:
             
             # Use OCR to find text with detailed data including bounding boxes
             ocr_data = pytesseract.image_to_data(
-                pil_image, 
+                pil_image,
                 output_type=pytesseract.Output.DICT,
                 config='--psm 6'  # Assume uniform block of text (better for desktop icons)
             )
-            
+
+            # Debug: log all detected text
+            all_text = [text.strip() for text in ocr_data.get('text', []) if text.strip()]
+            if all_text:
+                logger.info(f"OCR detected {len(all_text)} text elements: {all_text}")
+            else:
+                logger.warning("OCR detected no text on screen")
+
             # Find all text containing "notepad" and score them
             candidates = []
-            
+
             for i, text in enumerate(ocr_data.get('text', [])):
                 text_clean = text.strip()
                 if not text_clean:
@@ -272,15 +279,15 @@ class IconDetector:
                     w = ocr_data['width'][i]
                     h = ocr_data['height'][i]
                     ocr_conf = ocr_data.get('conf', [0])[i] if 'conf' in ocr_data else 0
-                    
+
                     # Icon is typically above the text label
                     icon_x = x + w // 2  # Center horizontally with text
                     icon_height_estimate = max(h * 1.5, 40)  # At least 40 pixels or 1.5x text height
                     icon_y = int(y - icon_height_estimate / 2)  # Center of icon above text
-                    
+
                     # Combined score: similarity to "Notepad" weighted with OCR confidence
                     combined_score = (similarity * 0.7) + ((ocr_conf / 100.0) * 0.3)
-                    
+
                     candidates.append({
                         'text': text_clean,
                         'x': icon_x,
@@ -289,8 +296,8 @@ class IconDetector:
                         'ocr_conf': ocr_conf,
                         'combined_score': combined_score
                     })
-                    
-                    logger.debug(f"Found candidate '{text_clean}' at ({x}, {y}) - similarity: {similarity:.2f}, OCR conf: {ocr_conf:.1f}%")
+
+                    logger.info(f"Found candidate '{text_clean}' at text_pos=({x}, {y}), icon_pos=({icon_x}, {icon_y}) - similarity: {similarity:.2f}, OCR conf: {ocr_conf:.1f}%")
             
             if not candidates:
                 logger.warning("OCR did not find any text containing 'Notepad' on desktop")
