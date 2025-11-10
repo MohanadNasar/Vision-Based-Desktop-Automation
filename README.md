@@ -73,21 +73,6 @@ It uses template matching to find the icon - basically comparing your desktop sc
 
 The multi-scale matching handles different icon sizes (small, medium, large icons in Windows).
 
-## Troubleshooting
-
-**Icon not found?**
-- Make sure the icon template is clear and recent
-- Check that the Notepad icon is actually visible on your desktop
-- Try lowering the confidence threshold in the code
-
-**Notepad won't open?**
-- Check the logs to see if the icon was detected
-- Try double-clicking manually to make sure it works
-
-**API issues?**
-- Check your internet connection
-- The script times out after 10 seconds
-
 ## Project Structure
 
 ```
@@ -106,10 +91,6 @@ The multi-scale matching handles different icon sizes (small, medium, large icon
 - Tested on 1920x1080, might work on other resolutions
 - You need a Notepad shortcut on your desktop
 - The icon template needs to be captured manually (for now)
-
-## License
-
-Just a personal project, use it however you want.
 
 ## Contact
 
