@@ -144,6 +144,35 @@ class IconDetector:
         
         return None, None, best_confidence
     
+    def _save_candidate_screenshots(self, screenshot: np.ndarray, candidates: list) -> None:
+        """
+        Save annotated screenshots for all candidates (for debugging).
+
+        Args:
+            screenshot: The screenshot image
+            candidates: List of candidate dictionaries with 'x', 'y', 'text', 'combined_score'
+        """
+        try:
+            from .utils import annotate_screenshot
+
+            candidates_dir = Path.home() / "Desktop" / "tjm-project" / "detection_screenshots" / "candidates"
+            candidates_dir.mkdir(parents=True, exist_ok=True)
+
+            for idx, candidate in enumerate(candidates, start=1):
+                annotated = annotate_screenshot(
+                    screenshot,
+                    candidate['x'],
+                    candidate['y'],
+                    width=60,
+                    height=60,
+                    label=f"Candidate {idx}: {candidate['text']}",
+                    confidence=candidate['combined_score']
+                )
+                cv2.imwrite(str(candidates_dir / f"candidate{idx}.png"), annotated)
+                logger.info(f"Saved candidate {idx} screenshot")
+        except Exception as e:
+            logger.warning(f"Failed to save candidate screenshots: {e}")
+
     def _calculate_similarity_to_notepad(self, text: str) -> float:
         text_lower = text.strip().lower()
         target = "notepad"
@@ -257,7 +286,10 @@ class IconDetector:
             if not candidates:
                 logger.warning("OCR did not find any text containing 'Notepad' on desktop")
                 return None, None, 0.0
-            
+
+            # Save screenshots for all candidates (for debugging)
+            self._save_candidate_screenshots(screenshot, candidates)
+
             # Select the candidate with the highest combined score (closest to "Notepad")
             best_match = max(candidates, key=lambda c: c['combined_score'])
             
