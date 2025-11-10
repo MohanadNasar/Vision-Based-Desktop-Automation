@@ -1,5 +1,3 @@
-"""Icon detection module using template matching and OCR fallback."""
-
 import logging
 import time
 from pathlib import Path
@@ -22,20 +20,12 @@ ICON_TEMPLATE_PATH = Path(__file__).parent.parent / "assets" / "notepad_icon.png
 
 
 class IconDetector:
-    """Detects desktop icons using template matching as primary method with OCR fallback."""
     
     def __init__(
         self,
         template_path: Optional[Path] = None,
         confidence_threshold: float = TEMPLATE_MATCH_THRESHOLD
     ):
-        """
-        Initialize the icon detector.
-        
-        Args:
-            template_path: Path to the icon template image. If None, uses default path.
-            confidence_threshold: Minimum confidence for template matching (0.0-1.0)
-        """
         self.template_path = template_path or ICON_TEMPLATE_PATH
         self.confidence_threshold = confidence_threshold
         self.template = None
@@ -64,18 +54,7 @@ class IconDetector:
         screenshot: Optional[np.ndarray] = None,
         use_ocr_fallback: bool = True
     ) -> Tuple[Optional[int], Optional[int], float]:
-        """
-        Detect icon position on desktop using template matching as primary method.
-        Falls back to OCR if no template exists or template matching fails.
         
-        Args:
-            screenshot: Optional screenshot image. If None, captures a new one.
-            use_ocr_fallback: Whether to use OCR if template matching fails or no template exists
-            
-        Returns:
-            Tuple of (x, y, confidence) where x,y are center coordinates.
-            Returns (None, None, 0.0) if detection fails.
-        """
         if screenshot is None:
             screenshot = capture_screenshot()
         
@@ -118,15 +97,7 @@ class IconDetector:
         self,
         screenshot: np.ndarray
     ) -> Tuple[Optional[int], Optional[int], float]:
-        """
-        Detect icon using template matching with multi-scale support.
         
-        Args:
-            screenshot: Screenshot image in BGR format
-            
-        Returns:
-            Tuple of (x, y, confidence)
-        """
         screenshot_gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
         
         best_match = None
@@ -174,48 +145,27 @@ class IconDetector:
         return None, None, best_confidence
     
     def _calculate_similarity_to_notepad(self, text: str) -> float:
-        """
-        Calculate similarity score between text and "Notepad".
-        Higher score means closer match to "Notepad".
-        
-        Args:
-            text: Text to compare
-            
-        Returns:
-            Similarity score between 0.0 and 1.0
-        """
         text_lower = text.strip().lower()
         target = "notepad"
         
-        # Exact match (case-insensitive)
         if text_lower == target:
             return 1.0
         
-        # Check if text starts with "notepad" (e.g., "notepad++", "notepad_icon")
         if text_lower.startswith(target):
-            # Calculate similarity based on how much of the text is "notepad"
-            # Pure "notepad" gets full score, longer text gets lower score
             notepad_ratio = len(target) / len(text_lower)
-            # Score: 0.8 base + up to 0.2 bonus for shorter text (closer to pure "notepad")
             return min(0.8 + (0.2 * notepad_ratio), 1.0)
         
-        # Check if text contains "notepad" as a word (not just substring)
         if target in text_lower:
-            # Find the position and check if it's a word boundary
             idx = text_lower.find(target)
-            # Check if it's at the start or has word boundary before it
             is_word_start = (idx == 0 or not text_lower[idx - 1].isalnum())
-            # Check if it's at the end or has word boundary after it
             is_word_end = (idx + len(target) >= len(text_lower) or 
                           not text_lower[idx + len(target)].isalnum())
             
             if is_word_start and is_word_end:
-                # "notepad" appears as a complete word
                 notepad_ratio = len(target) / len(text_lower)
                 return 0.6 + (0.2 * notepad_ratio)
             else:
                 # "notepad" is part of another word
-                notepad_ratio = len(target) / len(text_lower)
                 return 0.4 + (0.2 * notepad_ratio)
         
         # No match
@@ -225,16 +175,6 @@ class IconDetector:
         self,
         screenshot: np.ndarray
     ) -> Tuple[Optional[int], Optional[int], float]:
-        """
-        Detect icon using OCR to find "Notepad" text label (primary detection method).
-        Selects the closest match to "Notepad" if multiple matches exist.
-        
-        Args:
-            screenshot: Screenshot image in BGR format
-            
-        Returns:
-            Tuple of (x, y, confidence). Returns (None, None, 0.0) if detection fails.
-        """
         try:
             # Check if Tesseract is available
             try:
@@ -248,7 +188,7 @@ class IconDetector:
             # Convert to grayscale
             gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
 
-            # Apply bilateral filter to reduce noise while preserving edges
+            # Reduce noise while preserving edges
             denoised = cv2.bilateralFilter(gray, 9, 75, 75)
 
             # Increase contrast using CLAHE (Contrast Limited Adaptive Histogram Equalization)
@@ -338,16 +278,7 @@ class IconDetector:
         max_retries: int = MAX_RETRIES,
         retry_delay: float = RETRY_DELAY
     ) -> Tuple[Optional[int], Optional[int], float]:
-        """
-        Detect icon with retry logic.
         
-        Args:
-            max_retries: Maximum number of retry attempts
-            retry_delay: Delay between retries in seconds
-            
-        Returns:
-            Tuple of (x, y, confidence)
-        """
         for attempt in range(max_retries):
             logger.info(f"Detection attempt {attempt + 1}/{max_retries}")
             
@@ -364,24 +295,13 @@ class IconDetector:
         return None, None, 0.0
     
     def validate_icon_detection(self, x: int, y: int, confidence: float) -> bool:
-        """
-        Validate that detection result is acceptable.
-        
-        Args:
-            x: X coordinate
-            y: Y coordinate
-            confidence: Detection confidence score
-            
-        Returns:
-            True if detection is valid, False otherwise
-        """
+
         if x is None or y is None:
             return False
         
         if confidence < self.confidence_threshold:
             return False
         
-        # Basic bounds checking (assuming 1920x1080 resolution)
         if x < 0 or x > 1920 or y < 0 or y > 1080:
             logger.warning(f"Detected coordinates ({x}, {y}) are out of bounds")
             return False
