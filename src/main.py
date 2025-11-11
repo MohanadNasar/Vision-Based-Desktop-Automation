@@ -39,7 +39,7 @@ def main():
     logger.info("Vision-Based Desktop Automation - Starting")
     logger.info("="*60)
     
-    # Step 2: Initialize detector
+    # Step 1: Initialize detector
     try:
         detector = IconDetector()
         logger.info("Icon detector initialized")
@@ -47,7 +47,7 @@ def main():
         logger.error(f"Failed to initialize icon detector: {e}")
         sys.exit(1)
     
-    # Step 3: Fetch posts from API
+    # Step 2: Fetch posts from API
     try:
         logger.info("Fetching posts from JSONPlaceholder API...")
         posts = fetch_posts(limit=10)
@@ -58,7 +58,7 @@ def main():
         print("Please check your internet connection and try again.")
         sys.exit(1)
     
-    # Step 4: Validate posts
+    # Step 3: Validate posts
     valid_posts = [post for post in posts if validate_post(post)]
     if len(valid_posts) < len(posts):
         logger.warning(f"Some posts were invalid. Using {len(valid_posts)} valid posts.")
@@ -67,7 +67,7 @@ def main():
         logger.error("No valid posts to process")
         sys.exit(1)
     
-    # Step 5: Set up output directory
+    # Step 6: Set up output directory
     desktop_path = get_desktop_path()
     output_dir = desktop_path / "tjm-project"
     ensure_directory(str(output_dir))
@@ -79,7 +79,7 @@ def main():
     logger.info(f"Output directory: {output_dir}")
     logger.info(f"Screenshots directory: {screenshots_dir}")
     
-    # Step 6: Process each post
+    # Step 7: Process each post
     successful_saves = 0
     failed_saves = 0
     
@@ -89,11 +89,11 @@ def main():
         logger.info("-"*60)
         
         try:
-            # 6a. Capture fresh desktop screenshot
+            # 7a. Capture fresh desktop screenshot
             logger.info("Capturing desktop screenshot...")
             screenshot = capture_screenshot()
 
-            # 6b. Detect Notepad icon position (with retry logic)
+            # 7b. Detect Notepad icon position (with retry logic)
             logger.info("Detecting Notepad icon...")
             x, y, confidence = detector.detect_with_retry(max_retries=3, retry_delay=1.0)
 
@@ -102,7 +102,7 @@ def main():
                 failed_saves += 1
                 continue
 
-            # 6b2. Save annotated screenshot showing detected icon
+            # 7b2. Save annotated screenshot showing detected icon
             logger.info("Saving annotated screenshot...")
             annotated = annotate_screenshot(
                 screenshot,
@@ -117,7 +117,7 @@ def main():
             cv2.imwrite(str(screenshot_path), annotated)
             logger.info(f"Annotated screenshot saved: {screenshot_path}")
             
-            # 6c. Launch Notepad
+            # 7c. Launch Notepad
             logger.info(f"Launching Notepad from icon at ({x}, {y})...")
             if not launch_notepad(x, y, timeout=5.0):
                 logger.error(f"Failed to launch Notepad for post {post['id']}")
@@ -125,7 +125,7 @@ def main():
                 ensure_notepad_closed()
                 continue
             
-            # 6d. Type post content
+            # 7d. Type post content
             try:
                 content = format_post_content(post)
                 type_text(content)
@@ -135,7 +135,7 @@ def main():
                 failed_saves += 1
                 continue
             
-            # 6e. Save file
+            # 7e. Save file
             filename = f"post_{post['id']}.txt"
             filepath = output_dir / filename
             
@@ -156,11 +156,11 @@ def main():
             successful_saves += 1
             logger.info(f"Successfully saved post {post['id']}")
 
-            # 6f. Close Notepad
+            # 7f. Close Notepad
             close_notepad()
             time.sleep(1.0)  # Wait for window to close
 
-            # 6g. Wait before next iteration
+            # 7g. Wait before next iteration
             if i < len(valid_posts):
                 logger.info(f"Completed post {i}/{len(valid_posts)}. Preparing for next post...")
                 wait_before_next_iteration(delay=1.5)
@@ -175,7 +175,7 @@ def main():
             failed_saves += 1
             continue
     
-    # Step 7: Summary
+    # Step 8: Summary
     logger.info("\n" + "="*60)
     logger.info("AUTOMATION COMPLETE")
     logger.info("="*60)
