@@ -182,7 +182,7 @@ class IconDetector:
         
         if text_lower.startswith(target):
             notepad_ratio = len(target) / len(text_lower)
-            return min(0.8 + (0.2 * notepad_ratio), 1.0)
+            return min(0.6 + (0.2 * notepad_ratio), 0.8)
         
         if target in text_lower:
             idx = text_lower.find(target)
@@ -270,7 +270,7 @@ class IconDetector:
                     icon_y = int(y - icon_height_estimate / 2)  # Center of icon above text
 
                     # Combined score: similarity to "Notepad" weighted with OCR confidence
-                    combined_score = (similarity * 0.7) + ((ocr_conf / 100.0) * 0.3)
+                    combined_score = (similarity * 0.9) + ((ocr_conf / 100.0) * 0.1)
 
                     candidates.append({
                         'text': text_clean,

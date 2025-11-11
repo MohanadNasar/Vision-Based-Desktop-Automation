@@ -1,5 +1,3 @@
-"""Automation functions for mouse and keyboard control."""
-
 import logging
 import time
 from typing import Optional
@@ -20,17 +18,7 @@ pyautogui.FAILSAFE = True
 pyautogui.PAUSE = 0.1  # Small pause between actions
 
 def launch_notepad(icon_x: int, icon_y: int, timeout: float = WINDOW_WAIT_TIMEOUT) -> bool:
-    """
-    Launch Notepad by double-clicking the icon at specified coordinates.
     
-    Args:
-        icon_x: X coordinate of icon center
-        icon_y: Y coordinate of icon center
-        timeout: Maximum time to wait for Notepad window (seconds)
-        
-    Returns:
-        True if Notepad launched successfully, False otherwise
-    """
     try:
         logger.info(f"Moving mouse to icon at ({icon_x}, {icon_y})")
         pyautogui.moveTo(icon_x, icon_y, duration=0.3)
@@ -55,19 +43,7 @@ def launch_notepad(icon_x: int, icon_y: int, timeout: float = WINDOW_WAIT_TIMEOU
 
 
 def wait_for_window(title: str, timeout: float = WINDOW_WAIT_TIMEOUT) -> bool:
-    """
-    Wait for a window with the specified title to appear.
     
-    Uses a simple approach: wait for the window to appear and verify
-    by checking if we can interact with it.
-    
-    Args:
-        title: Window title to search for (case-insensitive partial match)
-        timeout: Maximum time to wait (seconds)
-        
-    Returns:
-        True if window found, False if timeout
-    """
     start_time = time.time()
     
     # Check if window with title exists
@@ -83,13 +59,7 @@ def wait_for_window(title: str, timeout: float = WINDOW_WAIT_TIMEOUT) -> bool:
 
 
 def type_text(text: str, interval: float = TYPE_INTERVAL) -> None:
-    """
-    Type text into the active window.
     
-    Args:
-        text: Text to type
-        interval: Delay between keystrokes (seconds)
-    """
     try:
         logger.info(f"Typing text ({len(text)} characters)...")
         # Clear any existing text first (Ctrl+A, then type)
@@ -108,17 +78,7 @@ def type_text(text: str, interval: float = TYPE_INTERVAL) -> None:
 
 
 def save_file(filename: str, directory: str) -> bool:
-    """
-    Save file using Ctrl+S (Save) which opens Save As dialog for new files.
-    Simple and reliable approach.
-
-    Args:
-        filename: Name of the file to save (e.g., "post_1.txt")
-        directory: Directory path to save the file
-
-    Returns:
-        True if save was successful, False otherwise
-    """
+    
     try:
         logger.info(f"Saving file: {filename} to {directory}")
 
@@ -152,9 +112,7 @@ def save_file(filename: str, directory: str) -> bool:
 
 
 def close_notepad() -> None:
-    """
-    Close Notepad window by finding it by title and closing it directly.
-    """
+    
     try:
         logger.info("Closing Notepad")
 
@@ -182,9 +140,7 @@ def close_notepad() -> None:
 
 
 def ensure_notepad_closed() -> None:
-    """
-    Ensure Notepad is completely closed by finding and closing by title.
-    """
+    
     try:
         # Try to find and close Notepad windows up to 2 times
         for attempt in range(2):
@@ -212,12 +168,7 @@ def ensure_notepad_closed() -> None:
 
 
 def wait_before_next_iteration(delay: float = 1.0) -> None:
-    """
-    Wait before starting the next iteration.
     
-    Args:
-        delay: Delay in seconds
-    """
     logger.info(f"Waiting {delay} seconds before next iteration...")
     time.sleep(delay)
 

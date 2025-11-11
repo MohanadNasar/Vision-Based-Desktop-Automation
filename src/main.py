@@ -3,6 +3,7 @@
 import logging
 import sys
 import time
+import pyautogui
 from pathlib import Path
 
 from .api_client import fetch_posts, format_post_content, validate_post
@@ -29,6 +30,8 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+pyautogui.FAILSAFE = True
 
 def main():
     """Main application workflow."""
