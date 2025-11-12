@@ -232,11 +232,10 @@ class IconDetector:
             pil_image = Image.fromarray(binary)
 
             # Use OCR to find text with detailed data including bounding boxes
-            # PSM 6: Assume a single uniform block of text
             ocr_data = pytesseract.image_to_data(
                 pil_image,
                 output_type=pytesseract.Output.DICT,
-                config='--psm 6'  # Uniform block of text (works well for desktop icons)
+                config='--psm 11'  # Scattered text across the screen (works well for desktop icons)
             )
 
             # Debug: log all detected text
