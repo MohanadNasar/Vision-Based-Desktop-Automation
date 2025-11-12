@@ -100,12 +100,6 @@ def close_notepad() -> None:
         if notepad_windows:
             notepad_windows[0].close()
             time.sleep(0.5)
-
-            # Move mouse to center to prevent tooltip
-            screen_width, screen_height = pyautogui.size()
-            pyautogui.moveTo(screen_width // 2, screen_height // 2, duration=0.2)
-            time.sleep(0.3)
-
             logger.info("Notepad closed")
 
     except Exception as e:
