@@ -1,121 +1,84 @@
 import logging
 import time
-from typing import Optional
 
 import pyautogui
 import pygetwindow as gw
 
 logger = logging.getLogger(__name__)
 
-# Configuration
-DOUBLE_CLICK_DELAY = 0.1
-TYPE_INTERVAL = 0.02
-WINDOW_WAIT_TIMEOUT = 5.0
-ACTION_DELAY = 0.3
-
-# Disable pyautogui failsafe for automation (use with caution)
 pyautogui.FAILSAFE = True
-pyautogui.PAUSE = 0.1  # Small pause between actions
+pyautogui.PAUSE = 0.1
 
-def launch_notepad(icon_x: int, icon_y: int, timeout: float = WINDOW_WAIT_TIMEOUT) -> bool:
-    
+
+def launch_notepad(icon_x: int, icon_y: int, timeout: float = 5.0) -> bool:
     try:
-        logger.info(f"Moving mouse to icon at ({icon_x}, {icon_y})")
         pyautogui.moveTo(icon_x, icon_y, duration=0.3)
-        time.sleep(ACTION_DELAY)
-        
-        logger.info("Double-clicking icon")
-        pyautogui.doubleClick(icon_x, icon_y, interval=DOUBLE_CLICK_DELAY)
-        time.sleep(ACTION_DELAY)
-        
-        # Wait for Notepad window to appear
-        logger.info("Waiting for Notepad window...")
-        if wait_for_window("Notepad", timeout=timeout):
-            logger.info("Notepad launched successfully")
-            return True
-        else:
-            logger.warning("Notepad window not detected after launch")
-            return False
-            
+        time.sleep(0.3)
+
+        pyautogui.doubleClick(icon_x, icon_y, interval=0.1)
+        time.sleep(0.3)
+
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            windows = gw.getWindowsWithTitle("Notepad")
+            if windows:
+                logger.info("Notepad launched")
+                return True
+            time.sleep(0.3)
+
+        logger.warning("Notepad window not detected")
+        return False
+
     except Exception as e:
         logger.error(f"Error launching Notepad: {e}")
         return False
 
 
-def wait_for_window(title: str, timeout: float = WINDOW_WAIT_TIMEOUT) -> bool:
-    
-    start_time = time.time()
-    
-    # Check if window with title exists
-    while time.time() - start_time < timeout:
-        try:
-            windows = gw.getWindowsWithTitle(title)
-            if windows:
-                return True
-        except Exception:
-            pass
-        time.sleep(0.3)
-    return False
-
-
-def type_text(text: str, interval: float = TYPE_INTERVAL) -> None:
-    
+def type_text(text: str, interval: float = 0.02) -> None:
     try:
-        logger.info(f"Typing text ({len(text)} characters)...")
-        # Clear any existing text first (Ctrl+A, then type)
         pyautogui.hotkey('ctrl', 'a')
         time.sleep(0.2)
-        
+
         pyautogui.write(text, interval=interval)
-        time.sleep(ACTION_DELAY)
-        logger.info("Text typed successfully")
-        
+        time.sleep(0.3)
+        logger.info(f"Typed {len(text)} characters")
+
     except Exception as e:
         logger.error(f"Error typing text: {e}")
         raise
 
 
-
-
 def save_file(filename: str, directory: str) -> bool:
-
     try:
-        logger.info(f"Saving file: {filename} to {directory}")
-
         import os
         filepath = os.path.join(directory, filename)
 
-        # Save using Ctrl+S (opens Save As dialog for unsaved files)
         pyautogui.hotkey('ctrl', 's')
-        time.sleep(1.0)  # Wait for Save As dialog to open
+        time.sleep(1.0)
 
-        # Type the full file path
         pyautogui.write(filepath, interval=0.02)
         time.sleep(0.3)
 
-        # Press Enter to save
         pyautogui.press('enter')
-        time.sleep(0.8)  # Wait for potential confirmation dialog
+        time.sleep(0.8)
 
-        # Handle "Confirm Save As" dialog if file exists
+        # Handle file overwrite confirmation
         try:
             confirm_windows = gw.getWindowsWithTitle("Confirm Save As")
             if confirm_windows:
-                logger.info(f"File exists, confirming overwrite: {filepath}")
                 confirm_windows[0].activate()
                 time.sleep(0.3)
-                pyautogui.press('y')  # Press 'Yes' to confirm overwrite
+                pyautogui.press('y')
                 time.sleep(0.5)
-        except Exception as e:
-            logger.debug(f"No confirmation dialog or error handling it: {e}")
+        except:
+            pass
 
-        # Check if file was created
-        time.sleep(0.5)  # Extra time for file system to update
+        time.sleep(0.5)
         if os.path.exists(filepath):
-            logger.info(f"File saved successfully: {filepath}")
+            logger.info(f"File saved: {filepath}")
             return True
         else:
-            logger.warning(f"File may not have been saved: {filepath}")
+            logger.warning("File may not have been saved")
             return False
 
     except Exception as e:
@@ -124,15 +87,10 @@ def save_file(filename: str, directory: str) -> bool:
 
 
 def close_notepad() -> None:
-    
     try:
-        logger.info("Closing Notepad")
-
-        # Find all windows with "Notepad" in the title
         notepad_windows = gw.getWindowsWithTitle('Notepad')
 
         if not notepad_windows:
-            # Try finding with partial match
             all_windows = gw.getAllTitles()
             for title in all_windows:
                 if 'Notepad' in title or 'notepad' in title:
@@ -140,26 +98,26 @@ def close_notepad() -> None:
                     break
 
         if notepad_windows:
-            # Close the window directly
             notepad_windows[0].close()
             time.sleep(0.5)
-            logger.info("Notepad closed successfully")
-        else:
-            logger.warning("Could not find Notepad window to close")
+
+            # Move mouse to center to prevent tooltip
+            screen_width, screen_height = pyautogui.size()
+            pyautogui.moveTo(screen_width // 2, screen_height // 2, duration=0.2)
+            time.sleep(0.3)
+
+            logger.info("Notepad closed")
 
     except Exception as e:
         logger.error(f"Error closing Notepad: {e}")
 
 
 def ensure_notepad_closed() -> None:
-    
     try:
-        # Try to find and close Notepad windows up to 2 times
         for attempt in range(2):
             notepad_windows = gw.getWindowsWithTitle('Notepad')
 
             if not notepad_windows:
-                # Try finding with partial match
                 all_windows = gw.getAllTitles()
                 for title in all_windows:
                     if 'Notepad' in title or 'notepad' in title:
@@ -170,17 +128,11 @@ def ensure_notepad_closed() -> None:
                 notepad_windows[0].close()
                 time.sleep(0.3)
             else:
-                # No Notepad window found, we're done
                 break
-
-        logger.debug("Ensured Notepad is closed")
 
     except Exception as e:
         logger.debug(f"Error ensuring Notepad is closed: {e}")
 
 
 def wait_before_next_iteration(delay: float = 1.0) -> None:
-    
-    logger.info(f"Waiting {delay} seconds before next iteration...")
     time.sleep(delay)
-

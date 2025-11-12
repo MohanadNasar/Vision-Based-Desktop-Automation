@@ -61,3 +61,26 @@ def annotate_screenshot(
 def get_desktop_path() -> Path:
     return Path.home() / "Desktop"
 
+
+def save_candidate_screenshots(screenshot: np.ndarray, candidates: list) -> None:
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        candidates_dir = Path.home() / "Desktop" / "tjm-project" / "detection_screenshots" / "candidates"
+        candidates_dir.mkdir(parents=True, exist_ok=True)
+
+        for idx, candidate in enumerate(candidates, start=1):
+            annotated = annotate_screenshot(
+                screenshot,
+                candidate['x'],
+                candidate['y'],
+                width=60,
+                height=60,
+                label=f"Candidate {idx}: {candidate['text']}",
+                confidence=candidate['score']
+            )
+            cv2.imwrite(str(candidates_dir / f"candidate{idx}.png"), annotated)
+    except Exception as e:
+        logger.warning(f"Failed to save candidate screenshots: {e}")
+
