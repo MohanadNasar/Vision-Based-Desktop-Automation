@@ -1,10 +1,8 @@
 import logging
 import time
 from pathlib import Path
-from typing import Optional, Tuple
 
 import cv2
-import numpy as np
 import pytesseract
 from PIL import Image
 
@@ -20,11 +18,7 @@ ICON_TEMPLATE_PATH = Path(__file__).parent.parent / "assets" / "notepad_icon.png
 
 class IconDetector:
 
-    def __init__(
-        self,
-        template_path: Optional[Path] = None,
-        confidence_threshold: float = TEMPLATE_MATCH_THRESHOLD
-    ):
+    def __init__(self, template_path=None, confidence_threshold=TEMPLATE_MATCH_THRESHOLD):
         self.template_path = template_path or ICON_TEMPLATE_PATH
         self.confidence_threshold = confidence_threshold
         self.template_gray = None
@@ -34,11 +28,7 @@ class IconDetector:
             self.template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
             logger.info(f"Template loaded: {self.template_gray.shape}")
 
-    def detect_icon_position(
-        self,
-        screenshot: Optional[np.ndarray] = None,
-        use_ocr_fallback: bool = True
-    ) -> Tuple[Optional[int], Optional[int], float]:
+    def detect_icon_position(self, screenshot=None, use_ocr_fallback=True):
 
         if screenshot is None:
             screenshot = capture_screenshot()
@@ -60,10 +50,7 @@ class IconDetector:
 
         return None, None, 0.0
 
-    def _detect_with_template_matching(
-        self,
-        screenshot: np.ndarray
-    ) -> Tuple[Optional[int], Optional[int], float]:
+    def _detect_with_template_matching(self, screenshot):
 
         screenshot_gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
         best_match = None
@@ -98,7 +85,7 @@ class IconDetector:
 
         return None, None, best_confidence
 
-    def _calculate_similarity_to_notepad(self, text: str) -> float:
+    def _calculate_similarity_to_notepad(self, text):
         text_lower = text.strip().lower()
         target = "notepad"
 
@@ -121,11 +108,7 @@ class IconDetector:
 
         return 0.0
 
-    def _detect_with_ocr(
-        self,
-        screenshot: np.ndarray
-    ) -> Tuple[Optional[int], Optional[int], float]:
-
+    def _detect_with_ocr(self, screenshot):
         try:
             pytesseract.get_tesseract_version()
         except:
@@ -134,22 +117,17 @@ class IconDetector:
 
         # Preprocess for OCR
         gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
-        denoised = cv2.bilateralFilter(gray, 9, 75, 75)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        denoised = cv2.bilateralFilter(gray, 9, 75, 75)  # Reduce noise
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))  # Increase contrast
         contrast = clahe.apply(denoised)
-        _, binary = cv2.threshold(contrast, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        _, binary = cv2.threshold(contrast, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)  # Binary threshold
 
-            # Convert to PIL Image for pytesseract
-            pil_image = Image.fromarray(binary)
-
-            # Use OCR to find text with detailed data including bounding boxes
         # Run OCR with PSM 11 (sparse text - works best for desktop icons)
         pil_image = Image.fromarray(binary)
         try:
             ocr_data = pytesseract.image_to_data(
                 pil_image,
                 output_type=pytesseract.Output.DICT,
-                config='--psm 11'  # Scattered text across the screen (works well for desktop icons)
                 config='--psm 11'
             )
             all_text = [t.strip() for t in ocr_data.get('text', []) if t.strip()]
@@ -194,11 +172,7 @@ class IconDetector:
         logger.info(f"Best: '{best['text']}' at ({best['x']}, {best['y']})")
         return best['x'], best['y'], min(best['score'], 0.9)
 
-    def detect_with_retry(
-        self,
-        max_retries: int = MAX_RETRIES,
-        retry_delay: float = RETRY_DELAY
-    ) -> Tuple[Optional[int], Optional[int], float]:
+    def detect_with_retry(self, max_retries=MAX_RETRIES, retry_delay=RETRY_DELAY):
 
         for attempt in range(max_retries):
             logger.info(f"Detection attempt {attempt + 1}/{max_retries}")
@@ -213,7 +187,7 @@ class IconDetector:
         logger.error(f"Failed after {max_retries} attempts")
         return None, None, 0.0
 
-    def validate_icon_detection(self, x: int, y: int, confidence: float) -> bool:
+    def validate_icon_detection(self, x, y, confidence):
         if x is None or y is None:
             return False
         if confidence < self.confidence_threshold:

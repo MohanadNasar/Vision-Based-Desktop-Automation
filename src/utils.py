@@ -1,13 +1,12 @@
 import time
 from pathlib import Path
-from typing import Optional
 
 import cv2
 import numpy as np
 import pyautogui
 
 
-def capture_screenshot(save_path: Optional[str] = None) -> np.ndarray:
+def capture_screenshot(save_path=None):
     screenshot = pyautogui.screenshot()
     if save_path:
         screenshot.save(save_path)
@@ -15,13 +14,13 @@ def capture_screenshot(save_path: Optional[str] = None) -> np.ndarray:
     return cv2.cvtColor(screenshot_np, cv2.COLOR_RGB2BGR)
 
 
-def ensure_directory(path: str) -> Path:
+def ensure_directory(path):
     dir_path = Path(path)
     dir_path.mkdir(parents=True, exist_ok=True)
     return dir_path
 
 
-def handle_existing_file(filepath: str) -> str:
+def handle_existing_file(filepath):
     path = Path(filepath)
     if path.exists():
         timestamp = int(time.time())
@@ -29,15 +28,7 @@ def handle_existing_file(filepath: str) -> str:
     return filepath
 
 
-def annotate_screenshot(
-    image: np.ndarray,
-    x: int,
-    y: int,
-    width: int = 50,
-    height: int = 50,
-    label: str = "Detected",
-    confidence: Optional[float] = None
-) -> np.ndarray:
+def annotate_screenshot(image, x, y, width=50, height=50, label="Detected", confidence=None):
     annotated = image.copy()
     x1, y1 = max(0, x - width // 2), max(0, y - height // 2)
     x2, y2 = min(image.shape[1], x + width // 2), min(image.shape[0], y + height // 2)
@@ -58,11 +49,11 @@ def annotate_screenshot(
     return annotated
 
 
-def get_desktop_path() -> Path:
+def get_desktop_path():
     return Path.home() / "Desktop"
 
 
-def save_candidate_screenshots(screenshot: np.ndarray, candidates: list) -> None:
+def save_candidate_screenshots(screenshot, candidates):
     import logging
     logger = logging.getLogger(__name__)
 
