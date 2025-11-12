@@ -4,7 +4,6 @@ import logging
 import sys
 import time
 import pyautogui
-from pathlib import Path
 
 from .api_client import fetch_posts, format_post_content, validate_post
 from .automation import (
@@ -16,7 +15,7 @@ from .automation import (
     wait_before_next_iteration,
 )
 from .icon_detector import IconDetector
-from .utils import annotate_screenshot, capture_screenshot, ensure_directory, get_desktop_path, handle_existing_file
+from .utils import annotate_screenshot, capture_screenshot, ensure_directory, get_desktop_path
 import cv2
 
 # Configure logging
@@ -135,17 +134,13 @@ def main():
                 failed_saves += 1
                 continue
             
-            # 7e. Save file
+            # 7e. Save file (will overwrite if exists)
             filename = f"post_{post['id']}.txt"
             filepath = output_dir / filename
-            
-            # Handle existing files
+
             if filepath.exists():
-                logger.warning(f"File already exists: {filepath}")
-                new_filepath = handle_existing_file(str(filepath))
-                filename = Path(new_filepath).name
-                logger.info(f"Using new filename: {filename}")
-            
+                logger.info(f"File already exists and will be overwritten: {filepath}")
+
             if not save_file(filename, str(output_dir)):
                 logger.error(f"Failed to save file for post {post['id']}")
                 close_notepad()

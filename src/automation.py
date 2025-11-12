@@ -78,7 +78,7 @@ def type_text(text: str, interval: float = TYPE_INTERVAL) -> None:
 
 
 def save_file(filename: str, directory: str) -> bool:
-    
+
     try:
         logger.info(f"Saving file: {filename} to {directory}")
 
@@ -95,7 +95,19 @@ def save_file(filename: str, directory: str) -> bool:
 
         # Press Enter to save
         pyautogui.press('enter')
-        time.sleep(1.0)  # Wait for save to complete
+        time.sleep(0.8)  # Wait for potential confirmation dialog
+
+        # Handle "Confirm Save As" dialog if file exists
+        try:
+            confirm_windows = gw.getWindowsWithTitle("Confirm Save As")
+            if confirm_windows:
+                logger.info(f"File exists, confirming overwrite: {filepath}")
+                confirm_windows[0].activate()
+                time.sleep(0.3)
+                pyautogui.press('y')  # Press 'Yes' to confirm overwrite
+                time.sleep(0.5)
+        except Exception as e:
+            logger.debug(f"No confirmation dialog or error handling it: {e}")
 
         # Check if file was created
         time.sleep(0.5)  # Extra time for file system to update
