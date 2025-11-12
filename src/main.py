@@ -37,6 +37,9 @@ def main():
     logger.info("="*60)
     logger.info("Vision-Based Desktop Automation - Starting")
     logger.info("="*60)
+
+    pyautogui.hotkey('win', 'd')
+    time.sleep(0.5)
     
     # Step 1: Initialize detector
     try:
