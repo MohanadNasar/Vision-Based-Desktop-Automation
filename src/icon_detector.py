@@ -10,7 +10,7 @@ from .utils import capture_screenshot, save_candidate_screenshots
 
 logger = logging.getLogger(__name__)
 
-TEMPLATE_MATCH_THRESHOLD = 0.9
+TEMPLATE_MATCH_THRESHOLD = 0.85
 MAX_RETRIES = 3
 RETRY_DELAY = 1.0
 ICON_TEMPLATE_PATH = Path(__file__).parent.parent / "assets" / "notepad_icon.png"
