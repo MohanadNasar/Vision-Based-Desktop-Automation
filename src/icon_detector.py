@@ -18,6 +18,7 @@ ICON_TEMPLATE_PATH = Path(__file__).parent.parent / "assets" / "notepad_icon.png
 
 class IconDetector:
 
+    #Initialize the IconDetector 
     def __init__(self, template_path=None, confidence_threshold=TEMPLATE_MATCH_THRESHOLD):
         self.template_path = template_path or ICON_TEMPLATE_PATH
         self.confidence_threshold = confidence_threshold
@@ -28,6 +29,7 @@ class IconDetector:
             self.template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
             logger.info(f"Template loaded: {self.template_gray.shape}")
 
+    #Detect the icon position
     def detect_icon_position(self, screenshot=None, use_ocr_fallback=True):
 
         if screenshot is None:
@@ -50,6 +52,7 @@ class IconDetector:
 
         return None, None, 0.0
 
+    #Detect the icon position with template matching
     def _detect_with_template_matching(self, screenshot):
 
         screenshot_gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
@@ -85,29 +88,8 @@ class IconDetector:
 
         return None, None, best_confidence
 
-    def _calculate_similarity_to_notepad(self, text):
-        text_lower = text.strip().lower()
-        target = "notepad"
 
-        if text_lower == target:
-            return 1.0
-
-        if text_lower.startswith(target):
-            notepad_ratio = len(target) / len(text_lower)
-            return 0.6 + (0.2 * notepad_ratio)
-
-        if target in text_lower:
-            idx = text_lower.find(target)
-            is_word_start = (idx == 0 or not text_lower[idx - 1].isalnum())
-            is_word_end = (idx + len(target) >= len(text_lower) or not text_lower[idx + len(target)].isalnum())
-
-            if is_word_start and is_word_end:
-                return 0.6
-            else:
-                return 0.4
-
-        return 0.0
-
+    #Detect the icon position with OCR
     def _detect_with_ocr(self, screenshot):
         try:
             pytesseract.get_tesseract_version()
@@ -152,7 +134,7 @@ class IconDetector:
 
                 # Icon is above text label
                 icon_x = x + w // 2
-                icon_y = int(y - max(h * 1.5, 40) / 2)
+                icon_y = int(y - max(h * 2.0, 50) / 2)
 
                 # Combined score: similarity weighted with OCR confidence
                 combined_score = (similarity * 0.9) + ((ocr_conf / 100.0) * 0.1)
@@ -172,6 +154,7 @@ class IconDetector:
         logger.info(f"Best: '{best['text']}' at ({best['x']}, {best['y']})")
         return best['x'], best['y'], min(best['score'], 0.9)
 
+
     def detect_with_retry(self, max_retries=MAX_RETRIES, retry_delay=RETRY_DELAY):
 
         for attempt in range(max_retries):
@@ -187,6 +170,31 @@ class IconDetector:
         logger.error(f"Failed after {max_retries} attempts")
         return None, None, 0.0
 
+    #Calculate the similarity to the notepad
+    def _calculate_similarity_to_notepad(self, text):
+        text_lower = text.strip().lower()
+        target = "notepad"
+
+        if text_lower == target:
+            return 1.0
+
+        if text_lower.startswith(target):
+            notepad_ratio = len(target) / len(text_lower)
+            return 0.6 + (0.2 * notepad_ratio)
+
+        if target in text_lower:
+            idx = text_lower.find(target)
+            is_word_start = (idx == 0 or not text_lower[idx - 1].isalnum())
+            is_word_end = (idx + len(target) >= len(text_lower) or not text_lower[idx + len(target)].isalnum())
+
+            if is_word_start and is_word_end:
+                return 0.6
+            else:
+                return 0.4
+
+        return 0.0
+
+    #Validate the icon detection
     def validate_icon_detection(self, x, y, confidence):
         if x is None or y is None:
             return False
