@@ -150,7 +150,7 @@ def main():
             # Wait before next iteration
             if i < len(valid_posts):
                 logger.info(f"Completed post {i}/{len(valid_posts)}")
-                wait_before_next_iteration(delay=1.5)
+                wait_before_next_iteration(delay=0.5)
 
         except KeyboardInterrupt:
             logger.info("\nProcess interrupted by user")
