@@ -10,7 +10,7 @@ from .utils import capture_screenshot, save_candidate_screenshots
 
 logger = logging.getLogger(__name__)
 
-TEMPLATE_MATCH_THRESHOLD = 0.7
+TEMPLATE_MATCH_THRESHOLD = 0.9
 MAX_RETRIES = 3
 RETRY_DELAY = 1.0
 ICON_TEMPLATE_PATH = Path(__file__).parent.parent / "assets" / "notepad_icon.png"
@@ -91,12 +91,7 @@ class IconDetector:
 
     #Detect the icon position with OCR
     def _detect_with_ocr(self, screenshot):
-        try:
-            pytesseract.get_tesseract_version()
-        except:
-            logger.error("Tesseract OCR not found")
-            return None, None, 0.0
-
+       
         # Preprocess for OCR
         gray = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
         denoised = cv2.bilateralFilter(gray, 9, 75, 75)  # Reduce noise
@@ -134,7 +129,7 @@ class IconDetector:
 
                 # Icon is above text label
                 icon_x = x + w // 2
-                icon_y = int(y - max(h * 2.0, 50) / 2)
+                icon_y = int(y - max(h * 3, 60) / 2)
 
                 # Combined score: similarity weighted with OCR confidence
                 combined_score = (similarity * 0.9) + ((ocr_conf / 100.0) * 0.1)
@@ -154,7 +149,7 @@ class IconDetector:
         logger.info(f"Best: '{best['text']}' at ({best['x']}, {best['y']})")
         return best['x'], best['y'], min(best['score'], 0.9)
 
-
+    #Detect the icon position with retry
     def detect_with_retry(self, max_retries=MAX_RETRIES, retry_delay=RETRY_DELAY):
 
         for attempt in range(max_retries):
